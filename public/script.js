@@ -1,5 +1,4 @@
-const API_BASE = window.location.hostname === 'localhost' ? '' : 'https://cahierappel-api.onrender.com';
-// ========== script.js - Version améliorée (listes, descriptions, upload fichier) ==========
+const API_BASE = '';  // Important : laisse vide car ton backend est sur le même serveur Railway// ========== script.js - Version améliorée (listes, descriptions, upload fichier) ==========
 let appData = {
     periode: [],
     matiere: [],
@@ -14,7 +13,10 @@ let appData = {
 // ----------------------------- HELPERS API -----------------------------
 async function apiFetch(url, options = {}) {
     const fullUrl = API_BASE + url;
-    const response = await fetch(fullUrl, options);
+    const response = await fetch(fullUrl, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+    });
     if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
     return response.json();
 }
