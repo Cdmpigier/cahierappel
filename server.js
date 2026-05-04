@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Connexion MongoDB (définir l'URI avant de l'utiliser)
+// Connexion MongoDB (une seule fois, avec options)
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cahierappel';
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 30000,
@@ -40,11 +40,15 @@ app.use('/api/enseignements', enseignementsRouter);
 app.use('/api/presences', presencesRouter);
 app.use('/api/justifications', justificationsRouter);
 
-// Route par défaut
+// Route racine
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Démarrage du serveur (pour Railway, on utilise toujours app.listen)
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 Serveur sur http://localhost:${PORT}`)); 
+// Démarrage local (uniquement si exécuté directement)
+if (require.main === module) {
+    const PORT = process.env.PORT || 4000;
+    app.listen(PORT, () => console.log(`🚀 Serveur local sur http://localhost:${PORT}`));
+}
+
+module.exports = app; // Pour Vercel (optionnel)
