@@ -15,7 +15,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cahierappel';
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 30000,
-    connectTimeoutMS: 30000
+    connectTimeoutMS: 30000,
+    dbName: 'test'   // force la base test
 })
 .then(() => console.log('✅ Connecté à MongoDB'))
 .catch(err => console.error('❌ Erreur MongoDB:', err));
