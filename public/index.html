@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MBDS | Gestion des Absences</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="logo-area" id="logoHome">
+                <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+                <span>MBDS</span>
+                <!-- La planification des cours n'est plus ici -->
+            </div>
+            <div>
+                <div class="menu-title">GESTION PRINCIPALE</div>
+                <div class="nav-item active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Tableau de bord</div>
+                <div class="nav-item" data-page="parametrage"><i class="fas fa-cogs"></i> Paramétrage</div>
+                <div class="nav-item" data-page="etudiants"><i class="fas fa-user-graduate"></i> Étudiants</div>
+            </div>
+            <div>
+                <div class="menu-title">SAISIE & SUIVI</div>
+                <div class="nav-item" data-page="saisiePresences"><i class="fas fa-clipboard-check"></i> Saisie Présences</div>
+                <div class="nav-item" data-page="justification"><i class="fas fa-file-medical-alt"></i> Justification Absences</div>
+                <div class="nav-item" data-page="envoiMessages"><i class="fas fa-envelope"></i> Envoi Messages</div>
+                <!-- Planification Cours déplacée ici -->
+                <div class="nav-item" data-page="enseignements"><i class="fas fa-calendar-plus"></i> Planification Cours</div>
+            </div>
+            <div class="other-section">
+                <div class="menu-title">ÉDITIONS & RAPPORTS</div>
+                <div class="nav-item" data-page="editionMatieres"><i class="fas fa-book"></i> Matières par filière</div>
+                <div class="nav-item" data-page="editionAbsences"><i class="fas fa-chart-bar"></i> Absences par filière</div>
+                <div class="nav-item" data-page="editionEtudiants"><i class="fas fa-user-clock"></i> Absences par étudiant</div>
+                <div class="nav-item" data-page="listeJustifiees"><i class="fas fa-check-circle"></i> Absences justifiées</div>
+            </div>
+        </aside>
+        <main class="main-content" id="mainContent"></main>
+    </div>
+    <div id="toastMsg" class="toast-msg"></div>
+    <div id="modal" class="modal"><div class="modal-content" id="modalContent"></div></div>
+
+    <!-- Modules JS -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>
