@@ -1,4 +1,6 @@
-const API_BASE = '';  // Important : laisse vide car ton backend est sur le même serveur Railway// ========== script.js - Version améliorée (listes, descriptions, upload fichier) ==========
+const API_BASE = '';
+
+// ========== DONNÉES GLOBALES ==========
 let appData = {
     periode: [],
     matiere: [],
@@ -10,7 +12,7 @@ let appData = {
     justification: []
 };
 
-// ----------------------------- HELPERS API -----------------------------
+// ========== HELPERS API ==========
 async function apiFetch(url, options = {}) {
     const fullUrl = API_BASE + url;
     const response = await fetch(fullUrl, {
@@ -47,35 +49,32 @@ async function loadAllData() {
     }
 }
 
-// ----------------------------- HELPERS UI -----------------------------
-function getMatiereById(id) { return appData.matiere.find(m => String(m._id) === String(id)); }
-function getEnseignantById(id) { return appData.enseignant.find(e => String(e._id) === String(id)); }
-function getFiliereById(id) { return appData.filiere.find(f => String(f._id) === String(id)); }
-function getEtudiantById(id) { return appData.etudiant.find(e => String(e._id) === String(id)); }
-function getPeriodeById(id) { return appData.periode.find(p => String(p._id) === String(id)); }
-function getEnseignementById(id) { return appData.enseignement.find(e => String(e._id) === String(id)); }
-function getetudiantByFiliere(filiereId) { return appData.etudiant.filter(e => String(e.filiere_id) === String(filiereId)); }
+// ========== HELPERS UI ==========
+function getMatiereById(id) { return appData.matiere.find(m => String(m.id) === String(id)); }
+function getEnseignantById(id) { return appData.enseignant.find(e => String(e.id) === String(id)); }
+function getFiliereById(id) { return appData.filiere.find(f => String(f.id) === String(id)); }
+function getEtudiantById(id) { return appData.etudiant.find(e => String(e.id) === String(id)); }
+function getPeriodeById(id) { return appData.periode.find(p => String(p.id) === String(id)); }
+function getEnseignementById(id) { return appData.enseignement.find(e => String(e.id) === String(id)); }
+
+function getetudiantByFiliere(filiereId) {
+    return appData.etudiant.filter(e => String(e.filiere_id) === String(filiereId));
+}
+
 function getAbsencesByEtudiant(etudiantId) {
-    return appData.presence.filter(p => {
-        let pid = p.etudiant_id;
-        if (pid && typeof pid === 'object' && pid._id) pid = pid._id;
-        return String(pid) === String(etudiantId) && p.statut === 'absent';
-    });
+    return appData.presence.filter(p => String(p.etudiant_id) === String(etudiantId) && p.statut === 'absent');
 }
 
 function isAbsenceJustifiee(enseignementId, etudiantId) {
-    return appData.justification.some(j => {
-        let jEnseignement = j.enseignement_id;
-        if (jEnseignement && typeof jEnseignement === 'object' && jEnseignement._id) jEnseignement = jEnseignement._id;
-        let jEtudiant = j.etudiant_id;
-        if (jEtudiant && typeof jEtudiant === 'object' && jEtudiant._id) jEtudiant = jEtudiant._id;
-        let ensId = enseignementId;
-        if (ensId && typeof ensId === 'object' && ensId._id) ensId = ensId._id;
-        let etuId = etudiantId;
-        if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-        return String(jEnseignement) === String(ensId) && String(jEtudiant) === String(etuId);
-    });
-}function formatDate(dateStr) { return new Date(dateStr).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }); }
+    return appData.justification.some(j => 
+        String(j.enseignement_id) === String(enseignementId) && 
+        String(j.etudiant_id) === String(etudiantId)
+    );
+}
+
+function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
+}
 
 function showToast(message, isError = false) {
     const toast = document.getElementById('toastMsg');
@@ -94,7 +93,6 @@ function closeModal() {
     document.getElementById('modal').classList.remove('active');
 }
 
-// Fonction utilitaire pour ajouter une boîte de description sous un tableau
 function addDescriptionBox(containerSelector, text) {
     setTimeout(() => {
         const container = document.querySelector(containerSelector);
@@ -108,7 +106,7 @@ function addDescriptionBox(containerSelector, text) {
     }, 50);
 }
 
-// ----------------------------- RENDU DES PAGES (UI) -----------------------------
+// ========== RENDU DES PAGES ==========
 function renderDashboard() {
     const totaletudiant = appData.etudiant.length;
     const totalAbsences = appData.presence.filter(p => p.statut === 'absent').length;
@@ -116,43 +114,19 @@ function renderDashboard() {
     const totalNonJustifiees = totalAbsences - totalJustifiees;
     const recentAbsences = [...appData.presence].filter(p => p.statut === 'absent').slice(-5).reverse();
 
-    // Dernières absences
     const absencesHtml = recentAbsences.map(p => {
-        // Extraction robuste de l'ID étudiant (si objet, prend _id)
-        let etudiantId = p.etudiant_id;
-        if (etudiantId && typeof etudiantId === 'object' && etudiantId._id) {
-            etudiantId = String(etudiantId._id);
-        } else {
-            etudiantId = String(etudiantId);
-        }
-        const etudiant = appData.etudiant.find(e => String(e._id) === etudiantId);
-
-        // Extraction robuste de l'ID enseignement
-        let enseignementId = p.enseignement_id;
-        if (enseignementId && typeof enseignementId === 'object' && enseignementId._id) {
-            enseignementId = String(enseignementId._id);
-        } else {
-            enseignementId = String(enseignementId);
-        }
-        const enseignement = appData.enseignement.find(e => String(e._id) === enseignementId);
-
-        let matiere = null;
+        const etudiant = appData.etudiant.find(e => String(e.id) === String(p.etudiant_id));
+        const enseignement = appData.enseignement.find(e => String(e.id) === String(p.enseignement_id));
+        let matiereNom = 'Cours inconnu';
         if (enseignement) {
-            let matiereId = enseignement.matiere_id;
-            if (matiereId && typeof matiereId === 'object' && matiereId._id) {
-                matiereId = String(matiereId._id);
-            } else {
-                matiereId = String(matiereId);
-            }
-            matiere = appData.matiere.find(m => String(m._id) === matiereId);
+            matiereNom = enseignement.matiere_nom || 'Matière inconnue';
+        } else if (p.matiere_nom) {
+            matiereNom = p.matiere_nom;
         }
-
-        const justifiee = appData.justification.some(j => 
-            String(j.enseignement_id) === String(p.enseignement_id) && 
-            String(j.etudiant_id) === String(p.etudiant_id)
+        const justifiee = appData.justification.some(j =>
+            String(j.enseignement_id) === String(p.enseignement_id) && String(j.etudiant_id) === String(p.etudiant_id)
         );
-        const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : `Étudiant ${etudiantId.slice(-6)}`;
-        const matiereNom = matiere ? matiere.nom : (enseignement ? 'Matière inconnue' : 'Cours inconnu');
+        const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : `Étudiant ${String(p.etudiant_id).slice(-5)}`;
         return `<div class="absence-item ${justifiee ? 'justifiee' : 'non-justifiee'}">
                     <div class="absence-info">
                         <strong>${etudiantNom}</strong>
@@ -162,19 +136,12 @@ function renderDashboard() {
                 </div>`;
     }).join('');
 
-    // Résumé par filière (recherche robuste)
     const resumeFiliereHtml = appData.filiere.map(f => {
-        const etudiantsFiliere = appData.etudiant.filter(e => {
-            let fid = e.filiere_id;
-            if (fid && typeof fid === 'object' && fid._id) fid = fid._id;
-            return String(fid) === String(f._id);
-        });
-        const idsEtudiants = etudiantsFiliere.map(e => String(e._id));
-        const absencesCount = appData.presence.filter(p => {
-            let etuId = p.etudiant_id;
-            if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-            return p.statut === 'absent' && idsEtudiants.includes(String(etuId));
-        }).length;
+        const etudiantsFiliere = appData.etudiant.filter(e => String(e.filiere_id) === String(f.id));
+        const idsEtudiants = etudiantsFiliere.map(e => String(e.id));
+        const absencesCount = appData.presence.filter(p => 
+            p.statut === 'absent' && idsEtudiants.includes(String(p.etudiant_id))
+        ).length;
         return `<div class="activity-row">
                     <div><strong>${f.libelle}</strong><br><small>${f.nbre_etudiant} étudiant(s)</small></div>
                     <div><span class="badge badge-warning">${absencesCount} absence(s)</span></div>
@@ -199,30 +166,27 @@ function renderDashboard() {
     `;
     document.getElementById('mainContent').innerHTML = html;
 }
+
 function renderParametrage() {
     const html = `
         <div class="page-header"><h1><i class="fas fa-cogs"></i> Paramétrage</h1></div>
         <div class="two-col-grid">
-            <div class="card-panel"><div class="panel-title"><i class="fas fa-calendar-alt"></i> Périodes</div><div id="listperiode">${appData.periode.map(p => `<div class="activity-row"><div><strong>${p.libelle}</strong><br><small>${formatDate(p.date_debut)} → ${formatDate(p.date_fin)}</small></div><button class="btn-sm btn-sm-secondary" onclick="deletePeriode('${p._id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddPeriodeModal()"><i class="fas fa-plus"></i> Ajouter période</button></div>
-            <div class="card-panel"><div class="panel-title"><i class="fas fa-book"></i> Matières</div><div id="listmatiere">${appData.matiere.map(m => `<div class="activity-row"><div><strong>${m.code} - ${m.nom}</strong><br><small>Volume: ${m.volume_horaire}h</small></div><button class="btn-sm btn-sm-secondary" onclick="deleteMatiere('${m._id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddMatiereModal()"><i class="fas fa-plus"></i> Ajouter matière</button></div>
-            <div class="card-panel"><div class="panel-title"><i class="fas fa-chalkboard-teacher"></i> Enseignants</div><div id="listenseignant">${appData.enseignant.map(e => `<div class="activity-row"><div><strong>${e.prenom} ${e.nom}</strong><br><small>${e.specialite} · ${e.mail}</small></div><button class="btn-sm btn-sm-secondary" onclick="deleteEnseignant('${e._id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddEnseignantModal()"><i class="fas fa-plus"></i> Ajouter enseignant</button></div>
-            <div class="card-panel"><div class="panel-title"><i class="fas fa-building"></i> Filières</div><div id="listfiliere">${appData.filiere.map(f => `<div class="activity-row"><div><strong>${f.code} - ${f.libelle}</strong><br><small>${f.nbre_etudiant} étudiant(s)</small></div><button class="btn-sm btn-sm-secondary" onclick="deleteFiliere('${f._id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddFiliereModal()"><i class="fas fa-plus"></i> Ajouter filière</button></div>
+            <div class="card-panel"><div class="panel-title"><i class="fas fa-calendar-alt"></i> Périodes</div><div id="listperiode">${appData.periode.map(p => `<div class="activity-row"><div><strong>${p.libelle}</strong><br><small>${formatDate(p.date_debut)} → ${formatDate(p.date_fin)}</small></div><button class="btn-sm btn-sm-secondary" onclick="deletePeriode('${p.id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddPeriodeModal()"><i class="fas fa-plus"></i> Ajouter période</button></div>
+            <div class="card-panel"><div class="panel-title"><i class="fas fa-book"></i> Matières</div><div id="listmatiere">${appData.matiere.map(m => `<div class="activity-row"><div><strong>${m.code} - ${m.nom}</strong><br><small>Volume: ${m.volume_horaire}h</small></div><button class="btn-sm btn-sm-secondary" onclick="deleteMatiere('${m.id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddMatiereModal()"><i class="fas fa-plus"></i> Ajouter matière</button></div>
+            <div class="card-panel"><div class="panel-title"><i class="fas fa-chalkboard-teacher"></i> Enseignants</div><div id="listenseignant">${appData.enseignant.map(e => `<div class="activity-row"><div><strong>${e.prenom} ${e.nom}</strong><br><small>${e.specialite} · ${e.mail}</small></div><button class="btn-sm btn-sm-secondary" onclick="deleteEnseignant('${e.id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddEnseignantModal()"><i class="fas fa-plus"></i> Ajouter enseignant</button></div>
+            <div class="card-panel"><div class="panel-title"><i class="fas fa-building"></i> Filières</div><div id="listfiliere">${appData.filiere.map(f => `<div class="activity-row"><div><strong>${f.code} - ${f.libelle}</strong><br><small>${f.nbre_etudiant} étudiant(s)</small></div><button class="btn-sm btn-sm-secondary" onclick="deleteFiliere('${f.id}')"><i class="fas fa-trash"></i></button></div>`).join('')}</div><button class="btn btn-primary" style="margin-top:12px;" onclick="openAddFiliereModal()"><i class="fas fa-plus"></i> Ajouter filière</button></div>
         </div>
     `;
     document.getElementById('mainContent').innerHTML = html;
 }
 
 function renderetudiant() {
-    // Préparer un Map pour les filières (accès rapide)
     const filiereMap = new Map();
-    appData.filiere.forEach(f => filiereMap.set(String(f._id), f.libelle));
-    // Compter les absences par étudiant (pour éviter les appels répétés)
+    appData.filiere.forEach(f => filiereMap.set(String(f.id), f.libelle));
     const absenceCount = new Map();
     for (const p of appData.presence) {
         if (p.statut !== 'absent') continue;
-        let etuId = p.etudiant_id;
-        if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-        etuId = String(etuId);
+        const etuId = String(p.etudiant_id);
         absenceCount.set(etuId, (absenceCount.get(etuId) || 0) + 1);
     }
 
@@ -231,24 +195,22 @@ function renderetudiant() {
         <div class="card-panel">
             <div class="table-container" id="etudiantsTableContainer">
                 <table>
-                    <thead>
-                        <tr><th>ID</th><th>Nom</th><th>Prénom</th><th>Sexe</th><th>Filière</th><th>Absences</th><th>Actions</th></tr>
-                    </thead>
+                    <thead><tr><th>ID</th><th>Nom</th><th>Prénom</th><th>Sexe</th><th>Filière</th><th>Absences</th><th>Actions</th></tr></thead>
                     <tbody>
                         ${appData.etudiant.map(e => {
-                            const filiereLib = filiereMap.get(String(e.filiere_id?._id || e.filiere_id)) || 'Aucune filière';
-                            const nbAbsences = absenceCount.get(String(e._id)) || 0;
+                            const filiereLib = e.filiere_libelle || filiereMap.get(String(e.filiere_id)) || 'Aucune filière';
+                            const nbAbsences = absenceCount.get(String(e.id)) || 0;
                             return `<tr>
-                                <td>${e._id.slice(-5)}</td>
+                                <td>${String(e.id).slice(-5)}</td>
                                 <td>${e.nom}</td>
                                 <td>${e.prenom}</td>
                                 <td>${e.sexe === 'M' ? 'Masculin' : 'Féminin'}</td>
                                 <td>${filiereLib}</td>
                                 <td><span class="badge badge-${nbAbsences > 0 ? 'danger' : 'success'}">${nbAbsences}</span></td>
-                                <td><button class="btn-sm btn-sm-secondary" onclick="deleteEtudiant('${e._id}')" style="color: #991b1b;"><i class="fas fa-trash"></i></button></td>
+                                <td><button class="btn-sm btn-sm-secondary" onclick="deleteEtudiant('${e.id}')" style="color: #991b1b;"><i class="fas fa-trash"></i></button></td>
                             </tr>`;
                         }).join('')}
-                        ${appData.etudiant.length === 0 ? '<tr><td colspan="7" style="text-align:center; padding: 20px;">Aucun étudiant inscrit</td></tr>' : ''}
+                        ${appData.etudiant.length === 0 ? '<tr><td colspan="7">Aucun étudiant inscrit</td></tr>' : ''}
                     </tbody>
                 </table>
             </div>
@@ -257,21 +219,17 @@ function renderetudiant() {
     document.getElementById('mainContent').innerHTML = html;
     addDescriptionBox('#etudiantsTableContainer', `Liste des ${appData.etudiant.length} étudiant(s) inscrit(s).`);
 }
+
 function renderSaisiepresence() {
     let rows = '';
     for (const p of appData.presence) {
-        const enseignement = p.enseignement_id; // objet peuplé
-        const etudiant = p.etudiant_id;         // objet peuplé
-        const matiere = enseignement?.matiere_id;
-        const filiere = etudiant?.filiere_id;
-
-        const dateStr = enseignement?.date_enseignement
-            ? new Date(enseignement.date_enseignement).toLocaleDateString()
-            : '—';
-        const matiereNom = matiere?.nom || '—';
-        const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : '—';
-        const filiereNom = filiere?.libelle || '—';
-        const horaire = enseignement?.horaire || '—';
+        const dateStr = p.date_enseignement 
+            ? new Date(p.date_enseignement).toLocaleDateString() 
+            : new Date(p.date_validation).toLocaleDateString();
+        const matiereNom = p.matiere_nom || '—';
+        const etudiantNom = (p.etudiant_prenom && p.etudiant_nom) ? `${p.etudiant_prenom} ${p.etudiant_nom}` : '—';
+        const filiereNom = p.filiere_libelle || '—';
+        const horaire = p.horaire || '—';
         const statut = p.statut === 'present' ? 'Présent' : 'Absent';
         const statutClass = p.statut === 'present' ? 'badge-success' : 'badge-danger';
 
@@ -283,7 +241,7 @@ function renderSaisiepresence() {
                 <td>${filiereNom}</td>
                 <td>${horaire}</td>
                 <td><span class="badge ${statutClass}">${statut}</span></td>
-                <td><button class="btn-sm btn-sm-secondary" onclick="deletePresence('${p._id}')"><i class="fas fa-trash"></i></button></td>
+                <td><button class="btn-sm btn-sm-secondary" onclick="deletePresence('${p.id}')"><i class="fas fa-trash"></i></button></td>
             </tr>
         `;
     }
@@ -305,61 +263,37 @@ function renderSaisiepresence() {
     document.getElementById('mainContent').innerHTML = html;
     addDescriptionBox('#presencesTableContainer', `Liste des ${appData.presence.length} saisie(s).`);
 }
-function renderJustification() {
-    // Construire un Set des clés (enseignement_id|etudiant_id) déjà justifiées
-    const justificationKeySet = new Set();
-    appData.justification.forEach(j => {
-        let jEns = j.enseignement_id;
-        if (jEns && typeof jEns === 'object' && jEns._id) jEns = jEns._id;
-        let jEtu = j.etudiant_id;
-        if (jEtu && typeof jEtu === 'object' && jEtu._id) jEtu = jEtu._id;
-        justificationKeySet.add(`${String(jEns)}|${String(jEtu)}`);
-    });
 
-    // Filtrer les absences non justifiées
+function renderJustification() {
+    const justificationKeySet = new Set();
+    appData.justification.forEach(j => justificationKeySet.add(`${String(j.enseignement_id)}|${String(j.etudiant_id)}`));
+
     const absencesNonJustifiees = appData.presence.filter(p => {
         if (p.statut !== 'absent') return false;
-        let ensId = p.enseignement_id;
-        if (ensId && typeof ensId === 'object' && ensId._id) ensId = ensId._id;
-        let etuId = p.etudiant_id;
-        if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-        const key = `${String(ensId)}|${String(etuId)}`;
-        return !justificationKeySet.has(key);
+        return !justificationKeySet.has(`${String(p.enseignement_id)}|${String(p.etudiant_id)}`);
     });
 
-    // Génération HTML des absences non justifiées
     const nonJustifieesHtml = absencesNonJustifiees.map(p => {
-        let ensId = p.enseignement_id;
-        if (ensId && typeof ensId === 'object' && ensId._id) ensId = ensId._id;
-        const enseignement = appData.enseignement.find(e => String(e._id) === String(ensId));
-        const matiere = enseignement ? appData.matiere.find(m => String(m._id) === String(enseignement.matiere_id)) : null;
-        let etuId = p.etudiant_id;
-        if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-        const etudiant = appData.etudiant.find(e => String(e._id) === String(etuId));
-        const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : 'Inconnu';
-        const matiereNom = matiere ? matiere.nom : 'N/A';
+        const enseignement = appData.enseignement.find(e => String(e.id) === String(p.enseignement_id));
+        const matiereNom = enseignement ? (enseignement.matiere_nom || 'N/A') : (p.matiere_nom || 'N/A');
+        const etudiant = appData.etudiant.find(e => String(e.id) === String(p.etudiant_id));
+        const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : (p.etudiant_nom ? `${p.etudiant_prenom} ${p.etudiant_nom}` : 'Inconnu');
         return `<div class="absence-item non-justifiee">
                     <div class="absence-info">
                         <strong>${etudiantNom}</strong>
                         <small>${matiereNom} - ${new Date(p.date_validation).toLocaleDateString()}</small>
                     </div>
-                    <button class="btn btn-sm btn-primary" onclick="openJustifierModal('${p._id}')">
+                    <button class="btn btn-sm btn-primary" onclick="openJustifierModal('${p.id}')">
                         <i class="fas fa-check"></i> Justifier
                     </button>
                 </div>`;
     }).join('');
 
-    // Génération HTML des absences justifiées
     const justifieesHtml = appData.justification.map(j => {
-        let ensId = j.enseignement_id;
-        if (ensId && typeof ensId === 'object' && ensId._id) ensId = ensId._id;
-        const enseignement = appData.enseignement.find(e => String(e._id) === String(ensId));
-        const matiere = enseignement ? appData.matiere.find(m => String(m._id) === String(enseignement.matiere_id)) : null;
-        let etuId = j.etudiant_id;
-        if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-        const etudiant = appData.etudiant.find(e => String(e._id) === String(etuId));
+        const enseignement = appData.enseignement.find(e => String(e.id) === String(j.enseignement_id));
+        const matiereNom = enseignement ? (enseignement.matiere_nom || 'N/A') : 'N/A';
+        const etudiant = appData.etudiant.find(e => String(e.id) === String(j.etudiant_id));
         const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : 'Inconnu';
-        const matiereNom = matiere ? matiere.nom : 'N/A';
         return `<div class="absence-item justifiee">
                     <div class="absence-info">
                         <strong>${etudiantNom}</strong>
@@ -397,8 +331,8 @@ function renderEnvoiMessages() {
                 <option value="etudiant">Étudiant spécifique</option>
                 <option value="filiere">Toute une filière</option>
             </select></div>
-            <div class="form-group" id="etudiantelect" style="display:none;"><label>Étudiant</label><select id="etudiantId">${appData.etudiant.map(e => `<option value="${e._id}">${e.nom} ${e.prenom}</option>`).join('')}</select></div>
-            <div class="form-group" id="filiereelect" style="display:none;"><label>Filière</label><select id="filiereId">${appData.filiere.map(f => `<option value="${f._id}">${f.libelle}</option>`).join('')}</select></div>
+            <div class="form-group" id="etudiantelect" style="display:none;"><label>Étudiant</label><select id="etudiantId">${appData.etudiant.map(e => `<option value="${e.id}">${e.nom} ${e.prenom}</option>`).join('')}</select></div>
+            <div class="form-group" id="filiereelect" style="display:none;"><label>Filière</label><select id="filiereId">${appData.filiere.map(f => `<option value="${f.id}">${f.libelle}</option>`).join('')}</select></div>
             <div class="form-group"><label>Canal d'envoi</label><select id="canal" required>
                 <option value="email">E-mail</option>
                 <option value="sms">SMS</option>
@@ -410,7 +344,6 @@ function renderEnvoiMessages() {
         </form></div>
     `;
     document.getElementById('mainContent').innerHTML = html;
-    // ... gardez les écouteurs d'événements existants
     document.getElementById('destinataireType').addEventListener('change', function() {
         document.getElementById('etudiantelect').style.display = this.value === 'etudiant' ? 'block' : 'none';
         document.getElementById('filiereelect').style.display = this.value === 'filiere' ? 'block' : 'none';
@@ -428,7 +361,7 @@ function renderEnvoiMessages() {
             showToast(`✅ Message envoyé à ${etudiant.prenom} ${etudiant.nom} ${canalTexte} (simulation)`);
         } else {
             const filiere = getFiliereById(document.getElementById('filiereId').value);
-            const nb = getetudiantByFiliere(filiere._id).length;
+            const nb = getetudiantByFiliere(filiere.id).length;
             showToast(`✅ Message envoyé aux ${nb} étudiants de ${filiere.libelle} ${canalTexte} (simulation)`);
         }
         e.target.reset();
@@ -438,55 +371,34 @@ function renderEnvoiMessages() {
 }
 
 function renderEditionmatiere() {
-    const html = `<div class="page-header"><h1><i class="fas fa-book"></i> Matières par filière</h1></div>${appData.filiere.map(f => { const enseignementFiliere = appData.enseignement.filter(ens => ens.filiere_id === f._id); const matiereIds = [...new Set(enseignementFiliere.map(ens => ens.matiere_id))]; const matiere = matiereIds.map(id => getMatiereById(id)).filter(Boolean); return `<div class="card-panel"><div class="panel-title"><i class="fas fa-building"></i> ${f.libelle} (${f.code})</div>${matiere.length > 0 ? `<div class="table-container" id="matieresParFiliereTable"><table><thead><tr><th>Code</th><th>Matière</th><th>Volume horaire</th><th>Enseignant(s)</th></tr></thead><tbody>${matiere.map(m => { const enseignantIds = enseignementFiliere.filter(ens => ens.matiere_id === m._id).map(ens => ens.enseignant_id); const enseignant = [...new Set(enseignantIds)].map(id => getEnseignantById(id)).filter(Boolean); return `<tr><td>${m.code}</td><td>${m.nom}</td><td>${m.volume_horaire}h}${enseignant.map(e => e.prenom + ' ' + e.nom).join(', ')}</td>`; }).join('')}</tbody></table></div>` : '<p style="text-align:center; color: var(--text-muted); padding: 20px;">Aucune matière assignée</p>'}</div>`; }).join('')}`;
+    const html = `<div class="page-header"><h1><i class="fas fa-book"></i> Matières par filière</h1></div>${appData.filiere.map(f => { const enseignementFiliere = appData.enseignement.filter(ens => String(ens.filiere_id) === String(f.id)); const matiereIds = [...new Set(enseignementFiliere.map(ens => ens.matiere_id))]; const matieres = matiereIds.map(id => getMatiereById(id)).filter(Boolean); return `<div class="card-panel"><div class="panel-title"><i class="fas fa-building"></i> ${f.libelle} (${f.code})</div>${matieres.length > 0 ? `<div class="table-container"><table><thead><tr><th>Code</th><th>Matière</th><th>Volume horaire</th><th>Enseignant(s)</th></tr></thead><tbody>${matieres.map(m => { const enseignantIds = enseignementFiliere.filter(ens => ens.matiere_id === m.id).map(ens => ens.enseignant_id); const enseignants = [...new Set(enseignantIds)].map(id => getEnseignantById(id)).filter(Boolean); return `<tr><td>${m.code}</td><td>${m.nom}</td><td>${m.volume_horaire}h</td><td>${enseignants.map(e => e.prenom + ' ' + e.nom).join(', ')}</td></tr>`; }).join('')}</tbody></table></div>` : '<p style="text-align:center; color: var(--text-muted); padding: 20px;">Aucune matière assignée</p>'}</div>`; }).join('')}`;
     document.getElementById('mainContent').innerHTML = html;
 }
 
 function renderEditionAbsences() {
-    // Créer un Map : étudiant_id -> filiere_id (converti en chaîne)
     const etuFiliereMap = new Map();
     for (const e of appData.etudiant) {
-        const filiereId = e.filiere_id?._id || e.filiere_id;
-        etuFiliereMap.set(String(e._id), String(filiereId));
+        etuFiliereMap.set(String(e.id), String(e.filiere_id));
     }
-
-    // Compter les absences par filière
-    const absencesCount = new Map();     // filiere_id -> total absences
-    const justifieesCount = new Map();   // filiere_id -> justifiées
+    const absencesCount = new Map();
+    const justifieesCount = new Map();
 
     for (const p of appData.presence) {
         if (p.statut !== 'absent') continue;
-        let etuId = p.etudiant_id;
-        if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-        etuId = String(etuId);
+        const etuId = String(p.etudiant_id);
         const filiereId = etuFiliereMap.get(etuId);
-        if (!filiereId) continue; // étudiant sans filière (ne devrait pas arriver)
-
+        if (!filiereId) continue;
         absencesCount.set(filiereId, (absencesCount.get(filiereId) || 0) + 1);
 
-        // Vérifier si cette absence est justifiée
-        let estJustifiee = false;
-        for (const j of appData.justification) {
-            let jEns = j.enseignement_id;
-            if (jEns && typeof jEns === 'object' && jEns._id) jEns = jEns._id;
-            let jEtu = j.etudiant_id;
-            if (jEtu && typeof jEtu === 'object' && jEtu._id) jEtu = jEtu._id;
-            let pEns = p.enseignement_id;
-            if (pEns && typeof pEns === 'object' && pEns._id) pEns = pEns._id;
-            if (String(jEns) === String(pEns) && String(jEtu) === String(etuId)) {
-                estJustifiee = true;
-                break;
-            }
-        }
-        if (estJustifiee) {
-            justifieesCount.set(filiereId, (justifieesCount.get(filiereId) || 0) + 1);
-        }
+        const justifiee = appData.justification.some(j =>
+            String(j.enseignement_id) === String(p.enseignement_id) && String(j.etudiant_id) === etuId
+        );
+        if (justifiee) justifieesCount.set(filiereId, (justifieesCount.get(filiereId) || 0) + 1);
     }
 
-    // Générer le HTML
     let html = '<div class="page-header"><h1><i class="fas fa-chart-bar"></i> Absences par filière</h1></div>';
     for (const f of appData.filiere) {
-        const fid = String(f._id);
+        const fid = String(f.id);
         const total = absencesCount.get(fid) || 0;
         const justifiees = justifieesCount.get(fid) || 0;
         const nonJustifiees = total - justifiees;
@@ -510,14 +422,11 @@ function renderEditionetudiant() {
         <div class="card-panel">
             <div class="table-container" id="absencesEtudiantTable">
                 <table>
-                    <thead>
-                        <tr><th>Étudiant</th><th>Filière</th><th>Total absences</th><th>Justifiées</th><th>Non justifiées</th><th>Détails</th></tr>
-                    </thead>
+                    <thead><tr><th>Étudiant</th><th>Filière</th><th>Total absences</th><th>Justifiées</th><th>Non justifiées</th><th>Détails</th></tr></thead>
                     <tbody>
                         ${appData.etudiant.map(e => {
-                            // Accès direct à l'objet peuplé
-                            const filiereNom = e.filiere_id?.libelle || 'Aucune filière';
-                            const absences = getAbsencesByEtudiant(e._id);
+                            const filiereNom = e.filiere_libelle || 'Aucune filière';
+                            const absences = getAbsencesByEtudiant(e.id);
                             const justifiees = absences.filter(a => isAbsenceJustifiee(a.enseignement_id, a.etudiant_id)).length;
                             const total = absences.length;
                             const nonJustifiees = total - justifiees;
@@ -527,12 +436,12 @@ function renderEditionetudiant() {
                                 <td><span class="badge badge-${total > 0 ? 'danger' : 'success'}">${total}</span></td>
                                 <td><span class="badge badge-success">${justifiees}</span></td>
                                 <td><span class="badge badge-danger">${nonJustifiees}</span></td>
-                                <td><button class="btn-sm btn-sm-primary" onclick="openDetailsAbsencesModal('${e._id}')">Voir</button></td>
+                                <td><button class="btn-sm btn-sm-primary" onclick="openDetailsAbsencesModal('${e.id}')">Voir</button></td>
                             </tr>`;
                         }).join('')}
                         ${appData.etudiant.length === 0 ? '<tr><td colspan="6">Aucun étudiant inscrit</td>' : ''}
                     </tbody>
-                <table>
+                </table>
             </div>
         </div>
     `;
@@ -541,49 +450,28 @@ function renderEditionetudiant() {
 }
 
 function renderListeJustifiees() {
-    // Créer des Maps pour accès rapide
     const matiereMap = new Map();
-    appData.matiere.forEach(m => matiereMap.set(String(m._id), m.nom));
-    const enseignantMap = new Map();
-    appData.enseignant.forEach(e => enseignantMap.set(String(e._id), `${e.prenom} ${e.nom}`));
+    appData.matiere.forEach(m => matiereMap.set(String(m.id), m.nom));
     const filiereMap = new Map();
-    appData.filiere.forEach(f => filiereMap.set(String(f._id), f.libelle));
-    const periodeMap = new Map();
-    appData.periode.forEach(p => periodeMap.set(String(p._id), p.libelle));
-
+    appData.filiere.forEach(f => filiereMap.set(String(f.id), f.libelle));
     const etudiantMap = new Map();
-    appData.etudiant.forEach(e => etudiantMap.set(String(e._id), { nom: e.nom, prenom: e.prenom, filiereId: e.filiere_id?._id || e.filiere_id }));
+    appData.etudiant.forEach(e => etudiantMap.set(String(e.id), { nom: e.nom, prenom: e.prenom, filiereId: e.filiere_id }));
 
     const rows = appData.justification.map(j => {
-        // Récupérer l'enseignement et ses composants
-        let ensId = j.enseignement_id;
-        if (ensId && typeof ensId === 'object' && ensId._id) ensId = ensId._id;
-        const enseignement = appData.enseignement.find(e => String(e._id) === String(ensId));
-        const matiere = enseignement ? matiereMap.get(String(enseignement.matiere_id)) : null;
-        const periode = enseignement ? periodeMap.get(String(enseignement.periode_id)) : null;
-
-        // Récupérer l'étudiant et sa filière
-        let etuId = j.etudiant_id;
-        if (etuId && typeof etuId === 'object' && etuId._id) etuId = etuId._id;
-        const etudiantInfo = etudiantMap.get(String(etuId));
-        const filiereLib = etudiantInfo ? filiereMap.get(String(etudiantInfo.filiereId)) : null;
-
+        const enseignement = appData.enseignement.find(e => String(e.id) === String(j.enseignement_id));
+        const matiereNom = enseignement ? (enseignement.matiere_nom || matiereMap.get(String(enseignement.matiere_id))) : 'Matière inconnue';
+        const etudiantInfo = etudiantMap.get(String(j.etudiant_id));
+        const filiereLib = etudiantInfo ? filiereMap.get(String(etudiantInfo.filiereId)) : 'Filière inconnue';
         const dateEnseignement = enseignement?.date_enseignement ? new Date(enseignement.date_enseignement).toLocaleDateString() : 'Date inconnue';
         const etudiantNom = etudiantInfo ? `${etudiantInfo.nom} ${etudiantInfo.prenom}` : 'Étudiant inconnu';
-        const filiereNom = filiereLib || 'Filière inconnue';
-        const matiereNom = matiere || 'Matière inconnue';
-        const motif = j.motif || '-';
-        const dateJustif = new Date(j.date_justification).toLocaleDateString();
-        const documentName = j.document || '-';
-
         return `<tr>
             <td>${dateEnseignement}</td>
             <td>${etudiantNom}</td>
-            <td>${filiereNom}</td>
+            <td>${filiereLib}</td>
             <td>${matiereNom}</td>
-            <td>${motif}</td>
-            <td>${dateJustif}</td>
-            <td>${documentName}</td>
+            <td>${j.motif || '-'}</td>
+            <td>${new Date(j.date_justification).toLocaleDateString()}</td>
+            <td>${j.document || '-'}</td>
         </tr>`;
     }).join('');
 
@@ -601,8 +489,9 @@ function renderListeJustifiees() {
     document.getElementById('mainContent').innerHTML = html;
     addDescriptionBox('#justifieesTableContainer', `Liste des ${appData.justification.length} justification(s).`);
 }
+
 function renderenseignement() {
-    if (!appData.enseignement || appData.enseignement.length === 0) {
+    if (!appData.enseignement.length) {
         document.getElementById('mainContent').innerHTML = `
             <div class="page-header"><h1>Planification des cours</h1><button class="btn btn-primary" onclick="openAddEnseignementModal()">Nouvel enseignement</button></div>
             <div class="card-panel"><p>Aucun enseignement planifié.</p></div>`;
@@ -610,12 +499,11 @@ function renderenseignement() {
     }
 
     const rows = appData.enseignement.map(ens => {
-        // Accès direct aux objets peuplés (pas besoin de helpers)
-        const matiereNom = ens.matiere_id?.nom || '—';
-        const enseignantNom = ens.enseignant_id ? `${ens.enseignant_id.prenom} ${ens.enseignant_id.nom}` : '—';
-        const filiereNom = ens.filiere_id?.libelle || '—';
-        const periodeNom = ens.periode_id?.libelle || '—';
-        const nbpresence = appData.presence.filter(p => p.enseignement_id === ens._id).length;
+        const matiereNom = ens.matiere_nom || '—';
+        const enseignantNom = (ens.enseignant_prenom && ens.enseignant_nom) ? `${ens.enseignant_prenom} ${ens.enseignant_nom}` : '—';
+        const filiereNom = ens.filiere_libelle || '—';
+        const periodeNom = ens.periode_libelle || '—';
+        const nbpresence = appData.presence.filter(p => String(p.enseignement_id) === String(ens.id)).length;
         const dateStr = new Date(ens.date_enseignement).toLocaleDateString();
         return `<tr>
             <td>${dateStr}</td>
@@ -624,11 +512,8 @@ function renderenseignement() {
             <td>${enseignantNom}</td>
             <td>${filiereNom}</td>
             <td>${periodeNom}</td>
-            <td><span class="badge badge-info">${nbpresence} </span></td>
-            <td>
-                
-                <button class="btn-sm btn-sm-secondary" onclick="deleteEnseignement('${ens._id}')">🗑️</button>
-            </td>
+            <td><span class="badge badge-info">${nbpresence}</span></td>
+            <td><button class="btn-sm btn-sm-secondary" onclick="deleteEnseignement('${ens.id}')">🗑️</button></td>
         </tr>`;
     }).join('');
 
@@ -636,14 +521,12 @@ function renderenseignement() {
         <div class="page-header"><h1><i class="fas fa-calendar-plus"></i> Planification des cours</h1><button class="btn btn-primary" onclick="openAddEnseignementModal()">Nouvel enseignement</button></div>
         <div class="card-panel">
             <div class="filter-bar">
-                <select id="filterFiliereEns"><option value="">Toutes les filières</option>${appData.filiere.map(f => `<option value="${f._id}">${f.libelle}</option>`).join('')}</select>
-                <select id="filterPeriodeEns"><option value="">Toutes les périodes</option>${appData.periode.map(p => `<option value="${p._id}">${p.libelle}</option>`).join('')}</select>
+                <select id="filterFiliereEns"><option value="">Toutes les filières</option>${appData.filiere.map(f => `<option value="${f.id}">${f.libelle}</option>`).join('')}</select>
+                <select id="filterPeriodeEns"><option value="">Toutes les périodes</option>${appData.periode.map(p => `<option value="${p.id}">${p.libelle}</option>`).join('')}</select>
             </div>
             <div class="table-container" id="enseignementsTableContainer">
                 <table>
-                    <thead>
-                        <tr><th>Date</th><th>Horaire</th><th>Matière</th><th>Enseignant</th><th>Filière</th><th>Période</th><th>Présences</th><th>Actions</th></tr>
-                    </thead>
+                    <thead><tr><th>Date</th><th>Horaire</th><th>Matière</th><th>Enseignant</th><th>Filière</th><th>Période</th><th>Présences</th><th>Actions</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
             </div>
@@ -652,23 +535,21 @@ function renderenseignement() {
     document.getElementById('mainContent').innerHTML = html;
     addDescriptionBox('#enseignementsTableContainer', `Liste des ${appData.enseignement.length} cours planifié(s).`);
 }
-console.log("=== ENSEIGNEMENTS ===");
-console.log("Premier enseignement :", appData.enseignement[0]);
-console.log("Toutes les matières :", appData.matiere);
-console.log("Tous les enseignants :", appData.enseignant);
-// ----------------------------- MODALES (AVEC APPELS API) -----------------------------
+
+// ========== MODALES ==========
 async function openAddPeriodeModal() {
-    const html = `<div class="modal-header"><h2><i class="fas fa-calendar-alt"></i> Ajouter une période</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="periodeForm"><div class="form-group"><label>Libellé</label><input type="text" id="libelle" required placeholder="Ex: Semestre 1 - 2025/2026"></div><div class="form-group"><label>Date de début</label><input type="date" id="date_debut" required></div><div class="form-group"><label>Date de fin</label><input type="date" id="date_fin" required></div><div class="form-group"><label>Description (optionnelle)</label><textarea id="description" rows="2" placeholder="Informations complémentaires sur cette période..."></textarea></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
+    const html = `<div class="modal-header"><h2><i class="fas fa-calendar-alt"></i> Ajouter une période</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="periodeForm"><div class="form-group"><label>Libellé</label><input type="text" id="libelle" required placeholder="Ex: Semestre 1 - 2025/2026"></div><div class="form-group"><label>Date de début</label><input type="date" id="date_debut" required></div><div class="form-group"><label>Date de fin</label><input type="date" id="date_fin" required></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
     openModal(html);
     document.getElementById('periodeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const newPeriode = {
-            libelle: document.getElementById('libelle').value,
-            date_debut: document.getElementById('date_debut').value,
-            date_fin: document.getElementById('date_fin').value,
-            description: document.getElementById('description').value
-        };
-        await apiFetch('/api/periodes', { method: 'POST', body: JSON.stringify(newPeriode) });
+        await apiFetch('/api/periodes', {
+            method: 'POST',
+            body: JSON.stringify({
+                libelle: document.getElementById('libelle').value,
+                date_debut: document.getElementById('date_debut').value,
+                date_fin: document.getElementById('date_fin').value
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Période ajoutée');
@@ -677,17 +558,18 @@ async function openAddPeriodeModal() {
 }
 
 async function openAddMatiereModal() {
-    const html = `<div class="modal-header"><h2><i class="fas fa-book"></i> Ajouter une matière</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="matiereForm"><div class="form-group"><label>Code</label><input type="text" id="code" required placeholder="Ex: MATH101"></div><div class="form-group"><label>Nom</label><input type="text" id="nom" required></div><div class="form-group"><label>Volume horaire</label><input type="number" id="volume_horaire" required min="1"></div><div class="form-group"><label>Description (optionnelle)</label><textarea id="description" rows="2" placeholder="Description de la matière..."></textarea></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
+    const html = `<div class="modal-header"><h2><i class="fas fa-book"></i> Ajouter une matière</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="matiereForm"><div class="form-group"><label>Code</label><input type="text" id="code" required></div><div class="form-group"><label>Nom</label><input type="text" id="nom" required></div><div class="form-group"><label>Volume horaire</label><input type="number" id="volume_horaire" required min="1"></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
     openModal(html);
     document.getElementById('matiereForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const newMatiere = {
-            code: document.getElementById('code').value,
-            nom: document.getElementById('nom').value,
-            volume_horaire: parseInt(document.getElementById('volume_horaire').value),
-            description: document.getElementById('description').value
-        };
-        await apiFetch('/api/matieres', { method: 'POST', body: JSON.stringify(newMatiere) });
+        await apiFetch('/api/matieres', {
+            method: 'POST',
+            body: JSON.stringify({
+                code: document.getElementById('code').value,
+                nom: document.getElementById('nom').value,
+                volume_horaire: parseInt(document.getElementById('volume_horaire').value)
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Matière ajoutée');
@@ -696,20 +578,21 @@ async function openAddMatiereModal() {
 }
 
 async function openAddEnseignantModal() {
-    const html = `<div class="modal-header"><h2><i class="fas fa-chalkboard-teacher"></i> Ajouter un enseignant</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="enseignantForm"><div class="form-group"><label>Nom</label><input type="text" id="nomEns" required></div><div class="form-group"><label>Prénom</label><input type="text" id="prenomEns" required></div><div class="form-group"><label>Email</label><input type="email" id="mail" required></div><div class="form-group"><label>Spécialité</label><input type="text" id="specialite" required></div><div class="form-group"><label>Diplôme</label><select id="diplome" required><option value="">Sélectionner...</option><option value="Doctorat">Doctorat</option><option value="Master">Master</option><option value="Licence">Licence</option></select></div><div class="form-group"><label>Sexe</label><select id="sexeEns" required><option value="M">Masculin</option><option value="F">Féminin</option></select></div><div class="form-group"><label>Description (optionnelle)</label><textarea id="description" rows="2" placeholder="Biographie, spécialisation..."></textarea></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
+    const html = `<div class="modal-header"><h2><i class="fas fa-chalkboard-teacher"></i> Ajouter un enseignant</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="enseignantForm"><div class="form-group"><label>Nom</label><input type="text" id="nomEns" required></div><div class="form-group"><label>Prénom</label><input type="text" id="prenomEns" required></div><div class="form-group"><label>Email</label><input type="email" id="mail" required></div><div class="form-group"><label>Spécialité</label><input type="text" id="specialite" required></div><div class="form-group"><label>Diplôme</label><select id="diplome" required><option value="">Sélectionner...</option><option value="Doctorat">Doctorat</option><option value="Master">Master</option><option value="Licence">Licence</option></select></div><div class="form-group"><label>Sexe</label><select id="sexeEns" required><option value="M">Masculin</option><option value="F">Féminin</option></select></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
     openModal(html);
     document.getElementById('enseignantForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const newEnseignant = {
-            nom: document.getElementById('nomEns').value,
-            prenom: document.getElementById('prenomEns').value,
-            mail: document.getElementById('mail').value,
-            specialite: document.getElementById('specialite').value,
-            diplome: document.getElementById('diplome').value,
-            sexe: document.getElementById('sexeEns').value,
-            description: document.getElementById('description').value
-        };
-        await apiFetch('/api/enseignants', { method: 'POST', body: JSON.stringify(newEnseignant) });
+        await apiFetch('/api/enseignants', {
+            method: 'POST',
+            body: JSON.stringify({
+                nom: document.getElementById('nomEns').value,
+                prenom: document.getElementById('prenomEns').value,
+                mail: document.getElementById('mail').value,
+                specialite: document.getElementById('specialite').value,
+                diplome: document.getElementById('diplome').value,
+                sexe: document.getElementById('sexeEns').value
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Enseignant ajouté');
@@ -718,16 +601,17 @@ async function openAddEnseignantModal() {
 }
 
 async function openAddFiliereModal() {
-    const html = `<div class="modal-header"><h2><i class="fas fa-building"></i> Ajouter une filière</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="filiereForm"><div class="form-group"><label>Code</label><input type="text" id="codeFil" required placeholder="Ex: IGL1"></div><div class="form-group"><label>Libellé</label><input type="text" id="libelleFil" required></div><div class="form-group"><label>Description (optionnelle)</label><textarea id="description" rows="2" placeholder="Objectifs, débouchés..."></textarea></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
+    const html = `<div class="modal-header"><h2><i class="fas fa-building"></i> Ajouter une filière</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="filiereForm"><div class="form-group"><label>Code</label><input type="text" id="codeFil" required></div><div class="form-group"><label>Libellé</label><input type="text" id="libelleFil" required></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></form></div>`;
     openModal(html);
     document.getElementById('filiereForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const newFiliere = {
-            code: document.getElementById('codeFil').value,
-            libelle: document.getElementById('libelleFil').value,
-            description: document.getElementById('description').value
-        };
-        await apiFetch('/api/filieres', { method: 'POST', body: JSON.stringify(newFiliere) });
+        await apiFetch('/api/filieres', {
+            method: 'POST',
+            body: JSON.stringify({
+                code: document.getElementById('codeFil').value,
+                libelle: document.getElementById('libelleFil').value
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Filière ajoutée');
@@ -736,18 +620,19 @@ async function openAddFiliereModal() {
 }
 
 async function openAddEtudiantModal() {
-    const html = `<div class="modal-header"><h2><i class="fas fa-user-graduate"></i> Inscrire un étudiant</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="etudiantForm"><div class="form-group"><label>Nom</label><input type="text" id="nomEtu" required></div><div class="form-group"><label>Prénom</label><input type="text" id="prenomEtu" required></div><div class="form-group"><label>Sexe</label><select id="sexeEtu" required><option value="M">Masculin</option><option value="F">Féminin</option></select></div><div class="form-group"><label>Filière</label><select id="filiereEtu" required><option value="">Sélectionner...</option>${appData.filiere.map(f => `<option value="${f._id}">${f.libelle}</option>`).join('')}</select></div><div class="form-group"><label>Informations complémentaires (optionnel)</label><textarea id="description" rows="2" placeholder="Adresse, téléphone, remarques..."></textarea></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Inscrire</button></form></div>`;
+    const html = `<div class="modal-header"><h2><i class="fas fa-user-graduate"></i> Inscrire un étudiant</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="etudiantForm"><div class="form-group"><label>Nom</label><input type="text" id="nomEtu" required></div><div class="form-group"><label>Prénom</label><input type="text" id="prenomEtu" required></div><div class="form-group"><label>Sexe</label><select id="sexeEtu" required><option value="M">Masculin</option><option value="F">Féminin</option></select></div><div class="form-group"><label>Filière</label><select id="filiereEtu" required><option value="">Sélectionner...</option>${appData.filiere.map(f => `<option value="${f.id}">${f.libelle}</option>`).join('')}</select></div><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Inscrire</button></form></div>`;
     openModal(html);
     document.getElementById('etudiantForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const newEtudiant = {
-            nom: document.getElementById('nomEtu').value,
-            prenom: document.getElementById('prenomEtu').value,
-            sexe: document.getElementById('sexeEtu').value,
-            filiere_id: document.getElementById('filiereEtu').value,
-            description: document.getElementById('description').value
-        };
-        await apiFetch('/api/etudiants', { method: 'POST', body: JSON.stringify(newEtudiant) });
+        await apiFetch('/api/etudiants', {
+            method: 'POST',
+            body: JSON.stringify({
+                nom: document.getElementById('nomEtu').value,
+                prenom: document.getElementById('prenomEtu').value,
+                sexe: document.getElementById('sexeEtu').value,
+                filiere_id: parseInt(document.getElementById('filiereEtu').value)
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Étudiant inscrit');
@@ -756,54 +641,19 @@ async function openAddEtudiantModal() {
 }
 
 async function openAddPresenceModal() {
-    // Créer une Map rapide pour les étudiants (déjà peuplés avec filiere_id)
-    const filiereMap = new Map();
-    appData.filiere.forEach(f => filiereMap.set(String(f._id), f.code));
-
-    const html = `<div class="modal-header"><h2><i class="fas fa-clipboard-check"></i> Saisir présence/absence</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div>
-        <div class="modal-body">
-            <form id="presenceForm">
-                <div class="form-group"><label>Enseignement</label>
-                    <select id="enseignementPres" required>
-                        <option value="">Sélectionner...</option>
-                        ${appData.enseignement.map(ens => {
-                            // Les références sont peuplées : utilisation directe
-                            const matiereNom = ens.matiere_id?.nom || 'Matière inconnue';
-                            return `<option value="${ens._id}">${matiereNom} - ${new Date(ens.date_enseignement).toLocaleDateString()} (${ens.horaire})</option>`;
-                        }).join('')}
-                    </select>
-                </div>
-                <div class="form-group"><label>Étudiant</label>
-                    <select id="etudiantPres" required>
-                        <option value="">Sélectionner...</option>
-                        ${appData.etudiant.map(e => {
-                            const filiereCode = e.filiere_id?.code || '?';
-                            return `<option value="${e._id}">${e.nom} ${e.prenom} (${filiereCode})</option>`;
-                        }).join('')}
-                    </select>
-                </div>
-                <div class="form-group"><label>Statut</label>
-                    <select id="statutPres" required>
-                        <option value="present">Présent</option>
-                        <option value="absent">Absent</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Remarque (optionnelle)</label>
-                    <textarea id="remarque" rows="2" placeholder="Commentaire sur cette présence/absence..."></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary">Enregistrer</button>
-            </form>
-        </div>`;
+    const html = `<div class="modal-header"><h2><i class="fas fa-clipboard-check"></i> Saisir présence/absence</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="presenceForm"><div class="form-group"><label>Enseignement</label><select id="enseignementPres" required><option value="">Sélectionner...</option>${appData.enseignement.map(ens => `<option value="${ens.id}">${ens.matiere_nom || 'Matière inconnue'} - ${new Date(ens.date_enseignement).toLocaleDateString()} (${ens.horaire})</option>`).join('')}</select></div><div class="form-group"><label>Étudiant</label><select id="etudiantPres" required><option value="">Sélectionner...</option>${appData.etudiant.map(e => `<option value="${e.id}">${e.nom} ${e.prenom} (${e.filiere_libelle || ''})</option>`).join('')}</select></div><div class="form-group"><label>Statut</label><select id="statutPres" required><option value="present">Présent</option><option value="absent">Absent</option></select></div><div class="form-group"><label>Remarque</label><textarea id="remarque" rows="2"></textarea></div><button type="submit" class="btn btn-primary">Enregistrer</button></form></div>`;
     openModal(html);
     document.getElementById('presenceForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const presence = {
-            enseignement_id: document.getElementById('enseignementPres').value,
-            etudiant_id: document.getElementById('etudiantPres').value,
-            statut: document.getElementById('statutPres').value,
-            remarque: document.getElementById('remarque').value
-        };
-        await apiFetch('/api/presences', { method: 'POST', body: JSON.stringify(presence) });
+        await apiFetch('/api/presences', {
+            method: 'POST',
+            body: JSON.stringify({
+                enseignement_id: parseInt(document.getElementById('enseignementPres').value),
+                etudiant_id: parseInt(document.getElementById('etudiantPres').value),
+                statut: document.getElementById('statutPres').value,
+                remarque: document.getElementById('remarque').value
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Saisie enregistrée');
@@ -811,80 +661,55 @@ async function openAddPresenceModal() {
     });
 }
 
-// Modale de justification améliorée avec upload de fichier et description
 async function openJustifierModal(presenceId) {
-    const presence = appData.presence.find(p => p._id === presenceId);
+    const presence = appData.presence.find(p => String(p.id) === String(presenceId));
     if (!presence) {
         showToast('Présence introuvable', true);
         return;
     }
-    const enseignement = presence.enseignement_id;
-    const etudiant = presence.etudiant_id;
-    const matiere = enseignement?.matiere_id;
-    const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : 'Inconnu';
-    const matiereNom = matiere?.nom || 'Matière inconnue';
-    const dateStr = enseignement?.date_enseignement ? new Date(enseignement.date_enseignement).toLocaleDateString() : 'Date inconnue';
+    const enseignement = getEnseignementById(presence.enseignement_id);
+    const etudiant = getEtudiantById(presence.etudiant_id);
+    const matiereNom = enseignement ? (enseignement.matiere_nom || 'Matière inconnue') : (presence.matiere_nom || 'Matière inconnue');
+    const etudiantNom = etudiant ? `${etudiant.nom} ${etudiant.prenom}` : (presence.etudiant_nom ? `${presence.etudiant_prenom} ${presence.etudiant_nom}` : 'Inconnu');
+    const dateStr = enseignement?.date_enseignement ? new Date(enseignement.date_enseignement).toLocaleDateString() : new Date(presence.date_validation).toLocaleDateString();
 
     const html = `
         <div class="modal-header"><h2><i class="fas fa-file-medical-alt"></i> Justifier une absence</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div>
         <div class="modal-body">
-            <p><strong>Étudiant :</strong> ${etudiantNom}<br>
-            <strong>Matière :</strong> ${matiereNom}<br>
-            <strong>Date :</strong> ${dateStr}</p>
+            <p><strong>Étudiant :</strong> ${etudiantNom}<br><strong>Matière :</strong> ${matiereNom}<br><strong>Date :</strong> ${dateStr}</p>
             <form id="justifierForm">
-                <div class="form-group">
-                    <label>Motif *</label>
-                    <select id="motif" required>
-                        <option value="">Sélectionner...</option>
-                        <option value="Certificat médical">Certificat médical</option>
-                        <option value="Raison familiale">Raison familiale</option>
-                        <option value="Problème de transport">Problème de transport</option>
-                        <option value="Autre">Autre</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Description détaillée</label>
-                    <textarea id="description" rows="3" placeholder="Expliquez les circonstances..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Document justificatif (PDF, image)</label>
-                    <input type="file" id="justificatifFile" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                    <small id="fileNameDisplay" style="display:block; margin-top:4px; color:var(--text-muted);"></small>
-                </div>
+                <div class="form-group"><label>Motif *</label><select id="motif" required><option value="">Sélectionner...</option><option value="Certificat médical">Certificat médical</option><option value="Raison familiale">Raison familiale</option><option value="Problème de transport">Problème de transport</option><option value="Autre">Autre</option></select></div>
+                <div class="form-group"><label>Description</label><textarea id="description" rows="3"></textarea></div>
+                <div class="form-group"><label>Document</label><input type="file" id="justificatifFile"><small id="fileNameDisplay" style="display:block;margin-top:4px;color:var(--text-muted);"></small></div>
                 <button type="submit" class="btn btn-primary">Justifier</button>
             </form>
         </div>
     `;
     openModal(html);
 
-    const fileInput = document.getElementById('justificatifFile');
-    if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            const fileName = e.target.files[0]?.name || '';
-            document.getElementById('fileNameDisplay').innerText = fileName ? `Fichier sélectionné : ${fileName}` : '';
-        });
-    }
+    document.getElementById('justificatifFile').addEventListener('change', (e) => {
+        const fileName = e.target.files[0]?.name || '';
+        document.getElementById('fileNameDisplay').innerText = fileName ? `Fichier sélectionné : ${fileName}` : '';
+    });
 
     document.getElementById('justifierForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const motif = document.getElementById('motif').value;
-        if (!motif) {
-            showToast('Veuillez choisir un motif', true);
-            return;
-        }
+        if (!motif) { showToast('Choisissez un motif', true); return; }
         const description = document.getElementById('description').value;
         const file = document.getElementById('justificatifFile').files[0];
-        let fileName = '';
-        if (file) fileName = file.name;
+        const fileName = file ? file.name : '';
 
-        const justification = {
-            enseignement_id: enseignement._id,
-            etudiant_id: etudiant._id,
-            motif: motif,
-            description: description,
-            document: fileName
-        };
-        await apiFetch('/api/justifications', { method: 'POST', body: JSON.stringify(justification) });
+        await apiFetch('/api/justifications', {
+            method: 'POST',
+            body: JSON.stringify({
+                enseignement_id: presence.enseignement_id,
+                etudiant_id: presence.etudiant_id,
+                motif,
+                description,
+                document: fileName
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Absence justifiée avec succès');
@@ -894,26 +719,28 @@ async function openJustifierModal(presenceId) {
 
 function openDetailsAbsencesModal(etudiantId) {
     const etudiant = getEtudiantById(etudiantId);
-    const absences = getAbsencesByEtudiant(etudiantId);
-    const html = `<div class="modal-header"><h2><i class="fas fa-user-clock"></i> Absences de ${etudiant.prenom} ${etudiant.nom}</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><div class="absences-list">${absences.map(a => { const enseignement = getEnseignementById(a.enseignement_id); const matiere = enseignement ? getMatiereById(enseignement.matiere_id) : null; const justifiee = isAbsenceJustifiee(a.enseignement_id, a.etudiant_id); return `<div class="absence-item ${justifiee ? 'justifiee' : 'non-justifiee'}"><div class="absence-info"><strong>${matiere ? matiere.nom : 'N/A'}</strong><small>${new Date(a.date_validation).toLocaleDateString()} - ${enseignement ? enseignement.horaire : ''}</small></div><span class="badge badge-${justifiee ? 'success' : 'danger'}">${justifiee ? 'Justifiée' : 'Non justifiée'}</span></div>`; }).join('')}${absences.length === 0 ? '<p style="text-align:center; color: var(--text-muted); padding: 20px;">Aucune absence</p>' : ''}</div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>`;
+    if (!etudiant) return;
+    const absences = getAbsencesByEtudiant(etudiant.id);
+    const html = `<div class="modal-header"><h2><i class="fas fa-user-clock"></i> Absences de ${etudiant.prenom} ${etudiant.nom}</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><div class="absences-list">${absences.map(a => { const enseignement = getEnseignementById(a.enseignement_id); const matiereNom = enseignement ? (enseignement.matiere_nom || 'N/A') : (a.matiere_nom || 'N/A'); const justifiee = isAbsenceJustifiee(a.enseignement_id, a.etudiant_id); return `<div class="absence-item ${justifiee ? 'justifiee' : 'non-justifiee'}"><div class="absence-info"><strong>${matiereNom}</strong><small>${new Date(a.date_validation).toLocaleDateString()} - ${enseignement ? enseignement.horaire : ''}</small></div><span class="badge badge-${justifiee ? 'success' : 'danger'}">${justifiee ? 'Justifiée' : 'Non justifiée'}</span></div>`; }).join('')}${absences.length === 0 ? '<p>Aucune absence</p>' : ''}</div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>`;
     openModal(html);
 }
 
 async function openAddEnseignementModal() {
-    const html = `<div class="modal-header"><h2><i class="fas fa-calendar-plus"></i> Planifier un cours</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="enseignementForm"><div class="two-col-grid"><div class="form-group"><label>Matière</label><select id="matiereEns" required><option value="">Sélectionner...</option>${appData.matiere.map(m => `<option value="${m._id}">${m.nom} (${m.code})</option>`).join('')}</select></div><div class="form-group"><label>Enseignant</label><select id="enseignantEns" required><option value="">Sélectionner...</option>${appData.enseignant.map(e => `<option value="${e._id}">${e.prenom} ${e.nom}</option>`).join('')}</select></div></div><div class="two-col-grid"><div class="form-group"><label>Filière</label><select id="filiereEns" required><option value="">Sélectionner...</option>${appData.filiere.map(f => `<option value="${f._id}">${f.libelle}</option>`).join('')}</select></div><div class="form-group"><label>Période</label><select id="periodeEns" required><option value="">Sélectionner...</option>${appData.periode.map(p => `<option value="${p._id}">${p.libelle}</option>`).join('')}</select></div></div><div class="two-col-grid"><div class="form-group"><label>Date</label><input type="date" id="dateEns" required></div><div class="form-group"><label>Horaire</label><input type="text" id="horaireEns" required placeholder="Ex: 08:00-10:00"></div></div><div class="form-group"><label>Remarque (optionnelle)</label><textarea id="description" rows="2" placeholder="Précisions sur le cours..."></textarea></div><button type="submit" class="btn btn-primary">Planifier</button></form></div>`;
+    const html = `<div class="modal-header"><h2><i class="fas fa-calendar-plus"></i> Planifier un cours</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><form id="enseignementForm"><div class="two-col-grid"><div class="form-group"><label>Matière</label><select id="matiereEns" required><option value="">Sélectionner...</option>${appData.matiere.map(m => `<option value="${m.id}">${m.nom} (${m.code})</option>`).join('')}</select></div><div class="form-group"><label>Enseignant</label><select id="enseignantEns" required><option value="">Sélectionner...</option>${appData.enseignant.map(e => `<option value="${e.id}">${e.prenom} ${e.nom}</option>`).join('')}</select></div></div><div class="two-col-grid"><div class="form-group"><label>Filière</label><select id="filiereEns" required><option value="">Sélectionner...</option>${appData.filiere.map(f => `<option value="${f.id}">${f.libelle}</option>`).join('')}</select></div><div class="form-group"><label>Période</label><select id="periodeEns" required><option value="">Sélectionner...</option>${appData.periode.map(p => `<option value="${p.id}">${p.libelle}</option>`).join('')}</select></div></div><div class="two-col-grid"><div class="form-group"><label>Date</label><input type="date" id="dateEns" required></div><div class="form-group"><label>Horaire</label><input type="text" id="horaireEns" required placeholder="Ex: 08:00-10:00"></div></div><button type="submit" class="btn btn-primary">Planifier</button></form></div>`;
     openModal(html);
     document.getElementById('enseignementForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const enseignement = {
-            matiere_id: document.getElementById('matiereEns').value,
-            enseignant_id: document.getElementById('enseignantEns').value,
-            filiere_id: document.getElementById('filiereEns').value,
-            periode_id: document.getElementById('periodeEns').value,
-            date_enseignement: document.getElementById('dateEns').value,
-            horaire: document.getElementById('horaireEns').value,
-            description: document.getElementById('description').value
-        };
-        await apiFetch('/api/enseignements', { method: 'POST', body: JSON.stringify(enseignement) });
+        await apiFetch('/api/enseignements', {
+            method: 'POST',
+            body: JSON.stringify({
+                matiere_id: parseInt(document.getElementById('matiereEns').value),
+                enseignant_id: parseInt(document.getElementById('enseignantEns').value),
+                filiere_id: parseInt(document.getElementById('filiereEns').value),
+                periode_id: parseInt(document.getElementById('periodeEns').value),
+                date_enseignement: document.getElementById('dateEns').value,
+                horaire: document.getElementById('horaireEns').value
+            })
+        });
         await loadAllData();
         closeModal();
         showToast('Cours planifié');
@@ -921,52 +748,16 @@ async function openAddEnseignementModal() {
     });
 }
 
-async function saisirpresenceGroupe(enseignementId) {
-    const enseignement = getEnseignementById(enseignementId);
-    if (!enseignement) return;
-    const etudiantFiliere = getetudiantByFiliere(enseignement.filiere_id);
-    const matiere = getMatiereById(enseignement.matiere_id);
-    const html = `<div class="modal-header"><h2><i class="fas fa-clipboard-check"></i> Saisie rapide - ${matiere ? matiere.nom : 'N/A'}</h2><i class="fas fa-times close-icon" onclick="closeModal()"></i></div><div class="modal-body"><p><strong>Date :</strong> ${new Date(enseignement.date_enseignement).toLocaleDateString()} | <strong>Horaire :</strong> ${enseignement.horaire}<br><strong>Filière :</strong> ${getFiliereById(enseignement.filiere_id)?.libelle}</p><div style="margin-bottom:16px;"><button class="btn-sm btn-sm-primary" onclick="document.querySelectorAll('.presence-radio-present').forEach(r => r.checked = true)">Tous présents</button> <button class="btn-sm btn-sm-secondary" onclick="document.querySelectorAll('.presence-radio-absent').forEach(r => r.checked = true)">Tous absents</button></div><form id="groupePresenceForm">${etudiantFiliere.map(e => { const existing = appData.presence.find(p => p.enseignement_id === enseignementId && p.etudiant_id === e._id); return `<div class="activity-row"><div><strong>${e.nom} ${e.prenom}</strong></div><div><label><input type="radio" name="presence_${e._id}" value="present" class="presence-radio-present" ${existing?.statut === 'present' ? 'checked' : ''}> Présent</label> <label><input type="radio" name="presence_${e._id}" value="absent" class="presence-radio-absent" ${existing?.statut === 'absent' ? 'checked' : ''}> Absent</label></div></div>`; }).join('')}<button type="submit" class="btn btn-primary">Enregistrer</button></form></div>`;
-    openModal(html);
-    document.getElementById('groupePresenceForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        for (const etudiant of etudiantFiliere) {
-            const radio = document.querySelector(`input[name="presence_${etudiant._id}"]:checked`);
-            if (radio) {
-                await apiFetch('/api/presences', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        enseignement_id: enseignementId,
-                        etudiant_id: etudiant._id,
-                        statut: radio.value
-                    })
-                });
-            }
-        }
-        await loadAllData();
-        closeModal();
-        showToast('Présences enregistrées');
-        navigateTo('enseignement');
-    });
-}
-
-// ----------------------------- ACTIONS (SUPPRESSIONS API) -----------------------------
+// ========== SUPPRESSIONS ==========
 async function deletePeriode(id) { if (confirm('Supprimer cette période ?')) { await apiFetch(`/api/periodes/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Période supprimée'); navigateTo('parametrage'); } }
 async function deleteMatiere(id) { if (confirm('Supprimer cette matière ?')) { await apiFetch(`/api/matieres/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Matière supprimée'); navigateTo('parametrage'); } }
 async function deleteEnseignant(id) { if (confirm('Supprimer cet enseignant ?')) { await apiFetch(`/api/enseignants/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Enseignant supprimé'); navigateTo('parametrage'); } }
 async function deleteFiliere(id) { if (confirm('Supprimer cette filière ?')) { await apiFetch(`/api/filieres/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Filière supprimée'); navigateTo('parametrage'); } }
-async function deleteEtudiant(id) { if (confirm('Supprimer cet étudiant et ses données ?')) { await apiFetch(`/api/etudiants/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Étudiant supprimé'); navigateTo('etudiant'); } }
-async function deletePresence(id) {
-    if (confirm('Supprimer cette saisie ?')) {
-        await apiFetch(`/api/presences/${id}`, { method: 'DELETE' });
-        await loadAllData();
-        showToast('Saisie supprimée');
-        navigateTo('saisiepresence');
-    }
-}
-async function deleteEnseignement(id) { if (confirm('Supprimer cet enseignement et toutes ses présences ?')) { await apiFetch(`/api/enseignements/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Enseignement supprimé'); navigateTo('enseignement'); } }
+async function deleteEtudiant(id) { if (confirm('Supprimer cet étudiant ?')) { await apiFetch(`/api/etudiants/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Étudiant supprimé'); navigateTo('etudiant'); } }
+async function deletePresence(id) { if (confirm('Supprimer cette saisie ?')) { await apiFetch(`/api/presences/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Saisie supprimée'); navigateTo('saisiepresence'); } }
+async function deleteEnseignement(id) { if (confirm('Supprimer cet enseignement ?')) { await apiFetch(`/api/enseignements/${id}`, { method: 'DELETE' }); await loadAllData(); showToast('Enseignement supprimé'); navigateTo('enseignement'); } }
 
-// ----------------------------- NAVIGATION -----------------------------
+// ========== NAVIGATION ==========
 let currentPage = 'dashboard';
 async function navigateTo(page) {
     currentPage = page;
@@ -990,9 +781,9 @@ async function navigateTo(page) {
         default: renderDashboard();
     }
 }
-// ----------------------------- INITIALISATION -----------------------------
+
+// ========== INITIALISATION ==========
 document.addEventListener('DOMContentLoaded', async () => {
-    // Exposer les fonctions globales
     window.navigateTo = navigateTo;
     window.closeModal = closeModal;
     window.openAddPeriodeModal = openAddPeriodeModal;
@@ -1004,7 +795,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.openJustifierModal = openJustifierModal;
     window.openDetailsAbsencesModal = openDetailsAbsencesModal;
     window.openAddEnseignementModal = openAddEnseignementModal;
-    window.saisirpresenceGroupe = saisirpresenceGroupe;
     window.deletePeriode = deletePeriode;
     window.deleteMatiere = deleteMatiere;
     window.deleteEnseignant = deleteEnseignant;

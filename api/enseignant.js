@@ -3,8 +3,13 @@ const router = express.Router();
 const Enseignant = require('../model/enseignant');
 
 router.get('/', async (req, res) => {
-    const enseignants = await Enseignant.find();
-    res.json(enseignants);
+    try {
+        const enseignants = await Enseignant.find();
+        res.json(enseignants);
+    } catch (err) {
+        console.error('Erreur GET /enseignants:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 router.post('/', async (req, res) => {
     const enseignant = new Enseignant(req.body);

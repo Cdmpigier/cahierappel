@@ -1,20 +1,10 @@
-# Utiliser l'image officielle Node.js
-FROM node:18-alpine
-
-# Créer et définir le répertoire de travail
+FROM node:22-alpine
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 WORKDIR /app
-
-# Copier package.json et package-lock.json
 COPY package*.json ./
-
-# Installer les dépendances
-RUN npm install
-
-# Copier le reste du code
+RUN npm ci
 COPY . .
-
-# Exposer le port utilisé par l'application (Render utilise process.env.PORT)
-EXPOSE 4000
-
-# Démarrer le serveur
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+EXPOSE 5000
 CMD ["node", "server.js"]

@@ -1,55 +1,47 @@
-require('dotenv').config();
+// require('dotenv').config();   // <-- Supprimé pour Docker
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const errorHandler = require('./middleware/errorHandler');
+
+// Import des routeurs
+const etudiantRoutes = require('./routes/etudiant');
+const enseignantRoutes = require('./routes/enseignant');
+const matiereRoutes = require('./routes/matiere');
+const filiereRoutes = require('./routes/filiere');
+const periodeRoutes = require('./routes/periode');
+const enseignementRoutes = require('./routes/enseignement');
+const presenceRoutes = require('./routes/presence');
+const justificationRoutes = require('./routes/justification');
 
 const app = express();
 
-// Middleware
+// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Connexion MongoDB (une seule fois, avec options)
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cahierappel';
-mongoose.connect(MONGODB_URI, {
-    serverSelectionTimeoutMS: 30000,
-    connectTimeoutMS: 30000,
-    dbName: 'test'   // force la base test
-})
-.then(() => console.log('✅ Connecté à MongoDB'))
-.catch(err => console.error('❌ Erreur MongoDB:', err));
+// Routes API
+app.use('/api/etudiants', etudiantRoutes);
+app.use('/api/enseignants', enseignantRoutes);
+app.use('/api/matieres', matiereRoutes);
+app.use('/api/filieres', filiereRoutes);
+app.use('/api/periodes', periodeRoutes);
+app.use('/api/enseignements', enseignementRoutes);
+app.use('/api/presences', presenceRoutes);
+app.use('/api/justifications', justificationRoutes);
 
-// Importer les routeurs
-const periodesRouter = require('./api/periode');
-const matieresRouter = require('./api/matiere');
-const enseignantsRouter = require('./api/enseignant');
-const filieresRouter = require('./api/filiere');
-const etudiantsRouter = require('./api/etudiant');
-const enseignementsRouter = require('./api/enseignement');
-const presencesRouter = require('./api/presence');
-const justificationsRouter = require('./api/justification');
-
-// Monter les routes
-app.use('/api/periodes', periodesRouter);
-app.use('/api/matieres', matieresRouter);
-app.use('/api/enseignants', enseignantsRouter);
-app.use('/api/filieres', filieresRouter);
-app.use('/api/etudiants', etudiantsRouter);
-app.use('/api/enseignements', enseignementsRouter);
-app.use('/api/presences', presencesRouter);
-app.use('/api/justifications', justificationsRouter);
-
-// Route racine
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Fallback pour le frontend – compatible Express 5
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Démarrage local (uniquement si exécuté directement)
-if (require.main === module) {
-    const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => console.log(`🚀 Serveur local sur http://localhost:${PORT}`));
-}
+// Middleware de gestion d'erreurs
+app.use(errorHandler);
 
-module.exports = app; // Pour Vercel (optionnel)
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur démarré sur le port ${PORT}`);
+});
+
+module.exports = app;
